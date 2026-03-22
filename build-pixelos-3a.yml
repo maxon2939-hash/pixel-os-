@@ -1,0 +1,49 @@
+name: Build PixelOS Android 16 Nothing 3A
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y openjdk-17-jdk python3 git-core bc ccache zip unzip repo
+
+      - name: Initialize PixelOS repo
+        run: |
+          mkdir -p ~/pixelos && cd ~/pixelos
+          repo init -u https://github.com/PixelOS-AOSP/manifest.git -b PixelOS_Android-16_QPR1
+          repo sync -c -j4 --no-clone-bundle --no-tags
+
+      - name: Clone device & vendor
+        run: |
+          git clone https://github.com/pixelos-asteroids/device_nothing_3a.git device/nothing/3a
+          git clone https://github.com/pixelos-asteroids/vendor_nothing_3a.git vendor/nothing/3a
+
+      - name: Setup environment
+        run: |
+          export USE_CCACHE=1
+          export CCACHE_DIR=/tmp/ccache
+          ccache -M 10G
+          source build/envsetup.sh
+          lunch pixel_3a-userdebug
+
+      - name: Build ROM
+        run: |
+          mka bacon -j2
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: PixelOS16-Nothing3A
+          path: out/target/product/3a/*.zip
