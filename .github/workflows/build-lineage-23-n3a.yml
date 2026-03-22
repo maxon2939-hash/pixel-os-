@@ -1,0 +1,57 @@
+name: Build LineageOS 23 Nothing 3A
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 480
+
+    steps:
+      # 1️⃣ Checkout repo
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y openjdk-17-jdk python3 git-core bc ccache zip unzip repo
+
+      # 3️⃣ Initialize LineageOS manifest
+      - name: Initialize LineageOS repo
+        run: |
+          mkdir -p ~/lineage && cd ~/lineage
+          repo init -u https://github.com/LineageOS/android.git -b lineage-23.0
+          repo sync -c -j4 --no-clone-bundle --no-tags
+
+      # 4️⃣ Clone device & vendor
+      - name: Clone device & vendor
+        run: |
+          git clone https://github.com/pixelos-asteroids/device_nothing_3a.git device/nothing/3a
+          git clone https://github.com/pixelos-asteroids/vendor_nothing_3a.git vendor/nothing/3a
+
+      # 5️⃣ Setup environment
+      - name: Setup environment
+        run: |
+          export USE_CCACHE=1
+          export CCACHE_DIR=/tmp/ccache
+          ccache -M 10G
+          source build/envsetup.sh
+          lunch lineage_3a-userdebug
+
+      # 6️⃣ Build ROM
+      - name: Build ROM
+        run: |
+          mka bacon -j2
+
+      # 7️⃣ Upload artifact
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LineageOS23-Nothing3A
+          path: out/target/product/3a/*.zip
