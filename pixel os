@@ -1,0 +1,24 @@
+name: Build PixelOS Android 16 Nothing 3A
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      # 1️⃣ Checkout repo
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y openjdk-17-jdk python3 git-core bc ccache zip unzip repo
+
+      # 3️⃣ Initialize PixelOS manifest (Android 16
